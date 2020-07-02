@@ -1,4 +1,4 @@
-import utils.main as m
+import utils.database as m
 
 '''
 Adding new users
