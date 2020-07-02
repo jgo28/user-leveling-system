@@ -1,16 +1,16 @@
 import os
 import sqlalchemy as sqla
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.exc import MultipleResultsFound
-from dotenv import load_dotenv
 from utils.database.models import Users
 
 
-
 class Methods:
-    def __init__(self, session):
-        self.session = session
+    def __init__(self, engine, metadata, connection):
+        self.engine = engine
+        self.metadata = metadata
+        self.connection = connection
+        # Creates a new session to the database based on the described engine
+        self.session = sessionmaker(bind=self.engine)
 
     def add_user(self, id, name, lvl, exp, msg_count):
         '''
@@ -35,7 +35,6 @@ class Methods:
             "already exists in the database!"
         )
 
-
     def update_user(self, id: str, name: str = None, lvl: int = None,
                     exp: int = None, msg_count: int = None):
         '''
@@ -45,10 +44,12 @@ class Methods:
         session = self.session()
         if self.user_exists(id):
             try:
-                user = session.query(Users).filter(Users.discord_id == id).scalar()
+                user = session.query(Users).filter(
+                    Users.discord_id == id).scalar()
             except MultipleResultsFound:
                 print(
-                    "Duplicate discord_id's were found! Please check the database."
+                    "Duplicate discord_id's were found! "
+                    "Please check the database."
                 )
             else:
                 parameters = [name, lvl, exp, msg_count]
@@ -60,11 +61,11 @@ class Methods:
                         setattr(user, col, var)
                         session.commit()
                         print(
-                            f"The {col} of user: {id} has been updated to {var}."
+                            f"The {col} of user: {id} "
+                            f"has been updated to {var}."
                         )
             return
         print("Users was not found.")
-
 
     def delete_user(self, id):
         '''
@@ -83,7 +84,6 @@ class Methods:
             return
         print(f"Users {id} was not found.")
 
-
     def user_exists(self, id):
         '''
         Checks to see if a user exists in the database baed on their discord_id.
@@ -95,10 +95,12 @@ class Methods:
             query = session.query(Users.discord_id).filter(
                 Users.discord_id == id).scalar() is not None
         except MultipleResultsFound:
-            print("Duplicate discord_id's were found! Please check the database.")
+            print(
+                "Duplicate discord_id's were found! "
+                "Please check the database."
+            )
         else:
             return query
-
 
     def get_user(self, id):
         '''
@@ -114,19 +116,17 @@ class Methods:
                     "message_count": user.message_count}
         print("Users was not found.")
 
-
     def get_all_users(self):
         '''
         Retrieves data about every user.
         Returns an array of tuples with every user's data.
         '''
         user_table = sqla.Table(
-            'users', metadata, autoload=True, autoload_with=engine)
+            'users', self.metadata, autoload=True, autoload_with=self.engine)
         query = sqla.select([user_table])
-        results = connection.execute(query)
+        results = self.connection.execute(query)
         result_set = results.fetchall()
         return result_set
-
 
     def get_user_count(self):
         '''

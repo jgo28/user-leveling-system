@@ -19,10 +19,13 @@ connection = engine.connect()
 metadata = sqla.MetaData()    # Used for representing a Table
 # Create the table
 Base.metadata.create_all(engine)
-# Creates a new session to the database based on the described engine
-Session = sessionmaker(bind=engine)
 
 
-def get_session():
-    return Session
+def get_metadata():
+    return metadata
+
+def get_engine():
+    return engine
     
+def get_connection():
+    return connection
